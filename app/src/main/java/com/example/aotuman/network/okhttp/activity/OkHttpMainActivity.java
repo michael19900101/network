@@ -1,15 +1,14 @@
 package com.example.aotuman.network.okhttp.activity;
 
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
-import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
 import com.example.aotuman.network.R;
-import com.example.common.util.L;
+import com.example.aotuman.network.okhttp.bean.NowPlayingMovie;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import java.io.IOException;
 
@@ -31,30 +30,15 @@ public class OkHttpMainActivity extends AppCompatActivity {
 
     private String url = "http://api.douban.com/v2/movie/nowplaying?apikey=0df993c66c0c636e29ecbb5344252a4a";
 
-    private Handler handler;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_okhttp_main);
         ButterKnife.bind(this);
 
-        handler = new Handler(){
-            @Override
-            public void handleMessage(Message msg) {
-                super.handleMessage(msg);
-                if(msg.what == 2){
-//                    tvResult.setText(jsonData);
-                }
-            }
-        };
+        btnRequest.setOnClickListener(v -> request());
 
-        btnRequest.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                request();
-            }
-        });
+
     }
 
     private void request(){
@@ -71,8 +55,18 @@ public class OkHttpMainActivity extends AppCompatActivity {
             public void onResponse(Call call, Response response) {
                 try {
                     final String jsonData = response.body().string();
-                    L.d("jsonData:"+jsonData);
-                    handler.sendEmptyMessage(2);
+                    Gson gson = new Gson();
+                    final NowPlayingMovie nowPlayingMovie = gson.fromJson(jsonData, new TypeToken<NowPlayingMovie>() {}.getType());
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            if(nowPlayingMovie != null){
+                                tvResult.setText("正在热映："+nowPlayingMovie.getTotal());
+                            }else {
+                                tvResult.setText("正在热映：0");
+                            }
+                        }
+                    });
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
