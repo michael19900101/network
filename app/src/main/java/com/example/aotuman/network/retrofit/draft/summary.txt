@@ -18,6 +18,7 @@ AndroidManifest.xml
 <uses-permission android:name="android.permission.INTERNET"/>
 
 步骤2：创建 接收服务器返回数据 的类
+tips:用android studio的插件GsonFormat把json转换成java bean
 
 步骤3：创建 用于描述网络请求 的接口
 public interface  MovieService {

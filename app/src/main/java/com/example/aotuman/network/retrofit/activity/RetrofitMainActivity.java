@@ -1,4 +1,4 @@
-package com.example.aotuman.network;
+package com.example.aotuman.network.retrofit.activity;
 
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -6,6 +6,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
+import com.example.aotuman.network.R;
 import com.example.aotuman.network.retrofit.MovieService;
 import com.example.aotuman.network.retrofit.bean.NowPlayingMovie;
 
@@ -44,7 +45,7 @@ public class RetrofitMainActivity extends AppCompatActivity {
     private void request(){
         // 步骤4:创建Retrofit对象
         Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("http://api.douban.com/")
+                .baseUrl("http://api.douban.com/") //设置最基本url,也就是http请求的url前缀,可以把项目中重复的前缀用这个来设置
                 .addConverterFactory(GsonConverterFactory.create()) //设置使用Gson解析(记得加入依赖)
                 .build();
 
