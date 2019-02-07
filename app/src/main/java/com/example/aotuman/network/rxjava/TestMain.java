@@ -18,6 +18,8 @@ import io.reactivex.functions.BiFunction;
 import io.reactivex.functions.BooleanSupplier;
 import io.reactivex.functions.Consumer;
 import io.reactivex.functions.Function;
+import io.reactivex.functions.Predicate;
+import io.reactivex.schedulers.Schedulers;
 
 /**
  * 参考 https://juejin.im/post/5b17560e6fb9a01e2862246f
@@ -25,7 +27,7 @@ import io.reactivex.functions.Function;
 public class TestMain {
 
     public static void main(String[] args) {
-        repeat();
+        debounce();
         try {
             new BufferedReader(new InputStreamReader(System.in)).readLine();
         } catch (IOException e) {
@@ -855,9 +857,9 @@ public class TestMain {
     }
 
     public static void repeat() {
-        Observable.create(new ObservableOnSubscribe < Integer > () {
+        Observable.create(new ObservableOnSubscribe<Integer>() {
             @Override
-            public void subscribe(ObservableEmitter < Integer > e) throws Exception {
+            public void subscribe(ObservableEmitter<Integer> e) throws Exception {
                 e.onNext(1);
                 e.onNext(2);
                 e.onNext(3);
@@ -865,10 +867,10 @@ public class TestMain {
             }
         })
                 .repeat(2)
-                .subscribe(new Observer < Integer > () {
+                .subscribe(new Observer<Integer>() {
                     @Override
                     public void onSubscribe(Disposable d) {
-                        System.out.println( "===================onSubscribe ");
+                        System.out.println("===================onSubscribe ");
                     }
 
                     @Override
@@ -879,6 +881,258 @@ public class TestMain {
                     @Override
                     public void onError(Throwable e) {
 
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        System.out.println("===================onComplete ");
+                    }
+                });
+
+    }
+
+
+    /**
+     * 指定被观察者的线程，要注意的时，如果多次调用此方法，只有第一次有效。
+     */
+    public static void subscribeOn() {
+        Observable.create(new ObservableOnSubscribe<Integer>() {
+
+            @Override
+            public void subscribe(ObservableEmitter<Integer> e) throws Exception {
+                System.out.println("=========================currentThread name: " + Thread.currentThread().getName());
+                e.onNext(1);
+                e.onNext(2);
+                e.onNext(3);
+                e.onComplete();
+            }
+        })
+                .subscribeOn(Schedulers.computation())
+                .subscribeOn(Schedulers.newThread())
+                .subscribe(new Observer<Integer>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+                        System.out.println("======================onSubscribe");
+                    }
+
+                    @Override
+                    public void onNext(Integer integer) {
+                        System.out.println("======================onNext " + integer);
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        System.out.println("======================onError");
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        System.out.println("======================onComplete");
+                    }
+                });
+
+    }
+
+    /**
+     * 指定观察者的线程，每指定一次就会生效一次。
+     */
+    public static void subscribeOn2() {
+        Observable.just(1, 2, 3)
+                .observeOn(Schedulers.newThread())
+                .flatMap(new Function<Integer, ObservableSource<String>>() {
+                    @Override
+                    public ObservableSource<String> apply(Integer integer) throws Exception {
+                        System.out.println("======================flatMap Thread name " + Thread.currentThread().getName());
+                        return Observable.just("chan" + integer);
+                    }
+                })
+                .observeOn(Schedulers.computation())
+                .subscribe(new Observer<String>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+                        System.out.println("======================onSubscribe");
+                    }
+
+                    @Override
+                    public void onNext(String s) {
+                        System.out.println("======================onNext Thread name " + Thread.currentThread().getName());
+                        System.out.println("======================onNext " + s);
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        System.out.println("======================onError");
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        System.out.println("======================onComplete");
+                    }
+                });
+
+    }
+
+    /**
+     * 通过一定逻辑来过滤被观察者发送的事件，如果返回 true 则会发送事件，否则不会发送。
+     */
+    public static void filter() {
+        Observable.just(1, 2, 3)
+                .filter(new Predicate<Integer>() {
+                    @Override
+                    public boolean test(Integer integer) throws Exception {
+                        return integer < 2;
+                    }
+                })
+                .subscribe(new Observer<Integer>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+                        System.out.println("==================onSubscribe ");
+                    }
+
+                    @Override
+                    public void onNext(Integer integer) {
+                        i += integer;
+                        System.out.println("==================onNext " + integer);
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        System.out.println("==================onError ");
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        System.out.println("==================onComplete ");
+                    }
+                });
+
+    }
+
+    /**
+     * 可以过滤不符合该类型事件
+     */
+    public static void ofType() {
+        Observable.just(1, 2, 3, "chan", "zhide")
+                .ofType(Integer.class)
+                .subscribe(new Observer<Integer>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+                        System.out.println("==================onSubscribe ");
+                    }
+
+                    @Override
+                    public void onNext(Integer integer) {
+                        i += integer;
+                        System.out.println("==================onNext " + integer);
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        System.out.println("==================onError ");
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        System.out.println("==================onComplete ");
+                    }
+                });
+
+    }
+
+    /**
+     * 过滤事件序列中的重复事件。
+     */
+    public static void distinct() {
+        Observable.just(1, 2, 3, 3, 2, 1)
+                .distinct()
+                .subscribe(new Observer<Integer>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+                        System.out.println("==================onSubscribe ");
+                    }
+
+                    @Override
+                    public void onNext(Integer integer) {
+                        i += integer;
+                        System.out.println("==================onNext " + integer);
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        System.out.println("==================onError ");
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        System.out.println("==================onComplete ");
+                    }
+                });
+
+    }
+
+    /**
+     * take 控制观察者接收的事件的数量。
+     * takeLast 控制观察者只能接受事件序列的后面几件事情
+     */
+    public static void take() {
+        Observable.just(1, 2, 3, 4, 5)
+                .take(3)
+//                .takeLast(3)
+                .subscribe(new Observer<Integer>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+                        System.out.println("==================onSubscribe ");
+                    }
+
+                    @Override
+                    public void onNext(Integer integer) {
+                        i += integer;
+                        System.out.println("==================onNext " + integer);
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        System.out.println("==================onError ");
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        System.out.println("==================onComplete ");
+                    }
+                });
+
+    }
+
+
+    /**
+     * 如果两件事件发送的时间间隔小于设定的时间间隔则前一件事件就不会发送给观察者。
+     * throttleWithTimeout() 与此方法的作用一样
+     */
+    public static void debounce() {
+        Observable.create(new ObservableOnSubscribe<Integer>() {
+
+            @Override
+            public void subscribe(ObservableEmitter<Integer> e) throws Exception {
+                e.onNext(1);
+                Thread.sleep(900);
+                e.onNext(2);
+            }
+        })
+                .debounce(1, TimeUnit.SECONDS)
+                .subscribe(new Observer<Integer>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+                        System.out.println("===================onSubscribe ");
+                    }
+
+                    @Override
+                    public void onNext(Integer integer) {
+                        System.out.println("===================onNext " + integer);
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        System.out.println("===================onError ");
                     }
 
                     @Override
