@@ -27,7 +27,7 @@ import io.reactivex.schedulers.Schedulers;
 public class TestMain {
 
     public static void main(String[] args) {
-        debounce();
+        subscribeOn();
         try {
             new BufferedReader(new InputStreamReader(System.in)).readLine();
         } catch (IOException e) {
@@ -164,6 +164,9 @@ public class TestMain {
                 });
     }
 
+    /**
+     * 可以将被观察者发送的数据类型转变成其他的类型
+     */
     public static void map() {
         Observable.just(1, 2, 3)
                 .map(new Function<Integer, String>() {
@@ -894,13 +897,14 @@ public class TestMain {
 
     /**
      * 指定被观察者的线程，要注意的时，如果多次调用此方法，只有第一次有效。
+     * 注意:observeOn 指定观察者线程
      */
     public static void subscribeOn() {
         Observable.create(new ObservableOnSubscribe<Integer>() {
 
             @Override
             public void subscribe(ObservableEmitter<Integer> e) throws Exception {
-                System.out.println("=========================currentThread name: " + Thread.currentThread().getName());
+                System.out.println("=========================被观察者 currentThread name: " + Thread.currentThread().getName());
                 e.onNext(1);
                 e.onNext(2);
                 e.onNext(3);
@@ -909,7 +913,9 @@ public class TestMain {
         })
                 .subscribeOn(Schedulers.computation())
                 .subscribeOn(Schedulers.newThread())
+                .observeOn(Schedulers.newThread())
                 .subscribe(new Observer<Integer>() {
+
                     @Override
                     public void onSubscribe(Disposable d) {
                         System.out.println("======================onSubscribe");
@@ -918,6 +924,7 @@ public class TestMain {
                     @Override
                     public void onNext(Integer integer) {
                         System.out.println("======================onNext " + integer);
+                        System.out.println("=========================观察者 currentThread name: " + Thread.currentThread().getName());
                     }
 
                     @Override
@@ -928,6 +935,7 @@ public class TestMain {
                     @Override
                     public void onComplete() {
                         System.out.println("======================onComplete");
+                        System.out.println("=========================onComplete currentThread name: " + Thread.currentThread().getName());
                     }
                 });
 
